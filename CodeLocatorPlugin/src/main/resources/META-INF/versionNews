@@ -1,6 +1,6 @@
-欢迎使用 CodeLocator 2.0.6
+欢迎使用 CodeLocator 2.0.7
 
 本次修复:
 
-1. 修复 Android Studio 2026.2 启动时的编辑器监听 API 兼容问题.
-2. 全局编辑器监听随插件生命周期自动释放.
+1. 兼容新旧 Android Studio 的应用初始化入口.
+2. 修复新版 IDE 启动时的 execute 入口告警.

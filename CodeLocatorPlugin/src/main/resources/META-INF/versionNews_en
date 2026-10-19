@@ -1,6 +1,6 @@
-Welcome to CodeLocator 2.0.6
+Welcome to CodeLocator 2.0.7
 
 Fixes in this release:
 
-1. Fix editor listener API compatibility on Android Studio 2026.2.
-2. Dispose global editor listeners with the plugin lifecycle.
+1. Support application startup entry points on older and newer Android Studio versions.
+2. Fix the execute entry point warning during IDE startup.

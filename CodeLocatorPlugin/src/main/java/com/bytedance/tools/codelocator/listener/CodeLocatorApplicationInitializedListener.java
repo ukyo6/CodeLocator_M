@@ -24,6 +24,8 @@ import com.intellij.openapi.editor.event.SelectionListener;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.ui.LightweightHint;
 import com.intellij.ui.awt.RelativePoint;
+import kotlin.Unit;
+import kotlin.coroutines.Continuation;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -61,6 +63,13 @@ public class CodeLocatorApplicationInitializedListener implements ApplicationIni
                 Log.e("保存Color数据失败", t);
             }
         });
+    }
+
+    // 新版 IDE 使用 suspend execute 入口, 旧版仍调用 componentsInitialized.
+    // 编译基线尚无 execute 方法, 因此保留相同 JVM 签名而不使用 @Override.
+    public Object execute(@NotNull Continuation<? super Unit> continuation) {
+        componentsInitialized();
+        return Unit.INSTANCE;
     }
 
     @Override
