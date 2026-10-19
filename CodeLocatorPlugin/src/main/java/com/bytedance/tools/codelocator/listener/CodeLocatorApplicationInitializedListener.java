@@ -16,6 +16,7 @@ import com.google.gson.reflect.TypeToken;
 import com.intellij.codeInsight.hint.HintManager;
 import com.intellij.codeInsight.hint.HintManagerImpl;
 import com.intellij.ide.ApplicationInitializedListener;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.event.SelectionEvent;
@@ -75,6 +76,7 @@ public class CodeLocatorApplicationInitializedListener implements ApplicationIni
 
     private void registerEditColorLisenter() {
         if (EditorFactory.getInstance().getEventMulticaster() != null) {
+            // 全局监听由插件应用服务管理, 在插件卸载或 IDE 退出时自动解除注册.
             EditorFactory.getInstance().getEventMulticaster().addSelectionListener(new SelectionListener() {
                 @Override
                 public void selectionChanged(@NotNull SelectionEvent e) {
@@ -129,7 +131,7 @@ public class CodeLocatorApplicationInitializedListener implements ApplicationIni
                             HintManager.HIDE_BY_ANY_KEY | HintManager.HIDE_BY_TEXT_CHANGE | HintManager.HIDE_BY_OTHER_HINT | HintManager.HIDE_BY_SCROLLING, 0);
                     Mob.mob(Mob.Action.CLICK, Mob.Button.COLOR_MODE);
                 }
-            });
+            }, ApplicationManager.getApplication().getService(CodeLocatorEditorService.class));
         }
     }
 

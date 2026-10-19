@@ -1,6 +1,6 @@
 package com.bytedance.tools.codelocator.utils
 
-import com.android.tools.idea.sdk.AndroidSdks
+import com.android.tools.idea.sdk.IdeSdks
 import com.bytedance.tools.codelocator.device.Device
 import com.bytedance.tools.codelocator.device.DeviceManager
 import com.bytedance.tools.codelocator.device.DeviceManager.OnExecutedListener
@@ -14,7 +14,6 @@ import com.intellij.openapi.wm.ex.WindowManagerEx
 import java.awt.Dimension
 import java.awt.Image
 import java.io.File
-import java.nio.file.Path
 import javax.swing.JDialog
 import javax.swing.filechooser.FileSystemView
 
@@ -65,20 +64,8 @@ abstract class OSHelper {
 
     open fun getAndroidSdkFile(): File? {
         try {
-            val androidSdkData = AndroidSdks.getInstance().androidSdkPathsFromExistingPlatforms
-            return androidSdkData.elementAtOrNull(0)
-        } catch (t: Throwable) {
-            Log.d("androidSdkPathsFromExistingPlatforms failed", t)
-        }
-        try {
-            val androidSdkData = AndroidSdks.getInstance().tryToChooseAndroidSdk() ?: return null
-            val getLocationMethod = ReflectUtils.getClassMethod(androidSdkData.javaClass, "getLocation")
-            val location = getLocationMethod.invoke(androidSdkData)
-            if (location is File) {
-                return location
-            } else if (location is Path) {
-                return location.toFile()
-            }
+            // 避开 AndroidSdks 的类/接口变更及 AndroidSdkData 的包名变化.
+            return IdeSdks.getInstance().androidSdkPath
         } catch (t: Throwable) {
             Log.e("getAndroidSdkFile failed", t)
         }

@@ -10,6 +10,8 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <h3>2.0.6: 修复 Android Studio 2026.2 的编辑器监听 API 兼容问题</h3>
+
         <h3>2.0.3: Optimize Screen Height </h3>
 
         <h3>2.0.2: Remove TinyPng</h3>

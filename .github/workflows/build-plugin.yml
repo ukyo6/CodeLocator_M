@@ -1,0 +1,92 @@
+name: 构建 CodeLocator 插件
+
+on:
+  push:
+    branches: [main, 'codex/**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: CodeLocatorPlugin
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v6.1.0
+        with:
+          distribution: temurin
+          java-version: '11'
+      - uses: gradle/actions/setup-gradle@v6.4.0
+      - name: 构建插件安装包
+        run: ./gradlew --no-daemon buildPlugin
+      - name: 生成安装包校验值
+        working-directory: CodeLocatorPlugin/build/distributions
+        run: sha256sum *.zip > SHA256SUMS
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: CodeLocatorPlugin
+          path: |
+            CodeLocatorPlugin/build/distributions/*.zip
+            CodeLocatorPlugin/build/distributions/SHA256SUMS
+          if-no-files-found: error
+
+  compatibility:
+    name: 兼容性检查 AS ${{ matrix.studio }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        studio: ['2021.3.1.17', '2025.2.1.8']
+    steps:
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: CodeLocatorPlugin
+          path: artifact
+      - uses: actions/setup-java@v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: 下载目标 IDE 和官方校验器
+        env:
+          STUDIO_VERSION: ${{ matrix.studio }}
+        run: |
+          curl -fLsS --retry 3 -o "$RUNNER_TEMP/android-studio.tar.gz" \
+            "https://dl.google.com/dl/android/studio/ide-zips/$STUDIO_VERSION/android-studio-$STUDIO_VERSION-linux.tar.gz"
+          tar -xzf "$RUNNER_TEMP/android-studio.tar.gz" -C "$RUNNER_TEMP"
+          curl -fLsS --retry 3 -o "$RUNNER_TEMP/plugin-verifier.jar" \
+            "https://github.com/JetBrains/intellij-plugin-verifier/releases/download/1.410/verifier-cli-1.410-all.jar"
+      - name: 检查安装包的二进制兼容性
+        run: |
+          plugin_archives=(artifact/*.zip)
+          test "${#plugin_archives[@]}" -eq 1
+          java -Xmx3g -jar "$RUNNER_TEMP/plugin-verifier.jar" check-plugin \
+            "${plugin_archives[0]}" "$RUNNER_TEMP/android-studio" \
+            -runtime-dir "$RUNNER_TEMP/android-studio/jbr" \
+            -verification-reports-dir compatibility-reports
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('compatibility-reports')
+          verdicts = list(root.rglob('verification-verdict.txt'))
+          assert verdicts, 'Plugin Verifier did not produce a verdict'
+          for path in verdicts:
+              print(path.read_text())
+          for name in ['compatibility-problems.txt', 'invalid-plugin.txt']:
+              for path in root.rglob(name):
+                  if path.read_text().strip():
+                      raise SystemExit(path.read_text())
+          PY
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: compatibility-AS-${{ matrix.studio }}
+          path: compatibility-reports
+          if-no-files-found: warn

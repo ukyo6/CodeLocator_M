@@ -1,8 +1,3 @@
-import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.io.InputStream
-import java.io.OutputStream
-
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.6.20"
@@ -10,11 +5,29 @@ plugins {
 }
 
 group = "com.bytedance.tools"
-version = "2.0.5"
+version = "2.0.6"
 
 repositories {
     mavenCentral()
     google()
+}
+
+// 新版 AS 不再附带旧布局解析器, 仅打包编译 SDK 中该独立包的类以保留无 SDK 抓取能力.
+val legacyLayoutInspector by tasks.registering(Jar::class) {
+    archiveBaseName.set("codelocator-layoutinspector")
+    archiveVersion.set("2022.1")
+    from(provider {
+        zipTree(configurations.compileClasspath.get().single { it.name == "sdk-tools.jar" })
+    }) {
+        include("com/android/layoutinspector/**")
+    }
+    from("../LICENSE.txt") {
+        into("META-INF")
+        rename { "LICENSE.txt" }
+    }
+    from("src/main/resources/META-INF/NOTICE-layoutinspector.txt") {
+        into("META-INF")
+    }
 }
 
 dependencies {
@@ -27,6 +40,7 @@ dependencies {
     implementation("io.reactivex.rxjava3:rxjava:3.1.7")
     implementation("com.google.zxing:core:3.5.2")
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
+    runtimeOnly(files(legacyLayoutInspector))
 }
 
 // Configure Gradle IntelliJ Plugin
@@ -34,6 +48,8 @@ dependencies {
 intellij {
     version.set("2022.1")
     type.set("IC") // Target IDE Platform
+    // UI 均由代码构建, 无 .form 文件; 避免旧 javac2 在 macOS 上错误扫描 JDK 的 Packages 目录.
+    instrumentCode.set(false)
 
     plugins.set(listOf("com.intellij.java", "org.jetbrains.kotlin", "android", "git4idea"))
 }
@@ -50,82 +66,12 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("213")
-        untilBuild.set("999.*")
+        untilBuild.set("262.*")
     }
 }
 
-gradle.addListener(object : TaskExecutionListener {
-    override fun beforeExecute(task: Task) {
-        if (task is Zip && !task.name.contains("CodeLocatorModel")) {
-            copyFile(
-                File("imgcopy.m"),
-                File("build${File.separator}idea-sandbox${File.separator}plugins${File.separator}CodeLocatorPlugin${File.separator}imgcopy.m")
-            )
-            copyFile(
-                File("JarModuleTemplate.zip"),
-                File("build${File.separator}idea-sandbox${File.separator}plugins${File.separator}CodeLocatorPlugin${File.separator}JarModuleTemplate.zip")
-            )
-            copyFile(
-                File("AndroidModuleTemplate.zip"),
-                File("build${File.separator}idea-sandbox${File.separator}plugins${File.separator}CodeLocatorPlugin${File.separator}AndroidModuleTemplate.zip")
-            )
-            copyFile(
-                File("codelocatorhelper.apk"),
-                File("build${File.separator}idea-sandbox${File.separator}plugins${File.separator}CodeLocatorPlugin${File.separator}codelocatorhelper.apk")
-            )
-            copyFile(
-                File("restartAndroidStudio"),
-                File("build${File.separator}idea-sandbox${File.separator}plugins${File.separator}CodeLocatorPlugin${File.separator}restartAndroidStudio")
-            )
-        }
-    }
-
-    override fun afterExecute(task: Task, state: TaskState) {
-        // 任务执行后逻辑（可选）
-    }
-})
-
-tasks.named("prepareSandbox") {
-    doLast {
-        copyFile(
-            File("imgcopy.m"),
-            File("build${File.separator}idea-sandbox${File.separator}plugins${File.separator}CodeLocatorPlugin${File.separator}imgcopy.m")
-        )
-        copyFile(
-            File("JarModuleTemplate.zip"),
-            File("build${File.separator}idea-sandbox${File.separator}plugins${File.separator}CodeLocatorPlugin${File.separator}JarModuleTemplate.zip")
-        )
-        copyFile(
-            File("AndroidModuleTemplate.zip"),
-            File("build${File.separator}idea-sandbox${File.separator}plugins${File.separator}CodeLocatorPlugin${File.separator}AndroidModuleTemplate.zip")
-        )
-        copyFile(
-            File("codelocatorhelper.apk"),
-            File("build${File.separator}idea-sandbox${File.separator}plugins${File.separator}CodeLocatorPlugin${File.separator}codelocatorhelper.apk")
-        )
-        copyFile(
-            File("restartAndroidStudio"),
-            File("build${File.separator}idea-sandbox${File.separator}plugins${File.separator}CodeLocatorPlugin${File.separator}restartAndroidStudio")
-        )
-    }
-}
-
-fun copyFile(sourceFile: File, targetFile: File) {
-    var inputStream: InputStream? = null
-    var outputStream: OutputStream? = null
-    try {
-        inputStream = FileInputStream(sourceFile)
-        outputStream = FileOutputStream(targetFile)
-        var buffer = ByteArray(8192)
-        var len = 0
-        len = inputStream.read(buffer)
-        while (len > 0) {
-            outputStream.write(buffer, 0, len)
-            len = inputStream.read(buffer)
-        }
-        inputStream.close()
-        outputStream.close()
-    } catch (e: Exception) {
-        System.out.println("Copy Error " + e)
+tasks.named<org.jetbrains.intellij.tasks.PrepareSandboxTask>("prepareSandbox") {
+    from(listOf("imgcopy.m", "JarModuleTemplate.zip", "AndroidModuleTemplate.zip", "codelocatorhelper.apk", "restartAndroidStudio")) {
+        into(rootProject.name)
     }
 }

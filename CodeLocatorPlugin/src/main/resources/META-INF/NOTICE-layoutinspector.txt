@@ -1,0 +1,11 @@
+Android Layout Inspector
+Copyright The Android Open Source Project
+
+This plugin includes the unmodified com.android.layoutinspector classes from
+the Android tools SDK bundled with IntelliJ IDEA Community Edition 2022.1.
+Only this standalone package is included; other IDE and SDK classes are not
+redistributed.
+
+Source: https://android.googlesource.com/platform/tools/base/+/studio-master-dev/layoutinspector/
+License: Apache License, Version 2.0. The complete license is included in the
+layout inspector JAR as META-INF/LICENSE.txt.

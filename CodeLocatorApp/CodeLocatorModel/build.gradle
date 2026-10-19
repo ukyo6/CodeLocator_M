@@ -1,7 +1,17 @@
 apply plugin: 'java-library'
 
-if (getProperties("customUploadGradlePluginUrl") != null) {
-    apply from: getProperties("customUploadGradlePluginUrl")
+def uploadProperties = new Properties()
+def uploadPropertiesFile = rootProject.file('local.properties')
+if (uploadPropertiesFile.exists()) {
+    uploadPropertiesFile.withInputStream { uploadProperties.load(it) }
+}
+def uploadGradlePluginUrl = uploadProperties.getProperty('customUploadGradlePluginUrl')
+if (uploadGradlePluginUrl != null) {
+    apply from: uploadGradlePluginUrl
+}
+
+repositories {
+    mavenCentral()
 }
 
 dependencies {

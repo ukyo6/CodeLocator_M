@@ -1,5 +1,6 @@
-Welcome to CodeLocator 2.0.4
+Welcome to CodeLocator 2.0.6
 
-The following functions are added:
+Fixes in this release:
 
-1. Support AS 2024
+1. Fix editor listener API compatibility on Android Studio 2026.2.
+2. Dispose global editor listeners with the plugin lifecycle.
